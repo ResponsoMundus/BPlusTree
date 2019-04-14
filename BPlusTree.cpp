@@ -9,7 +9,11 @@ BPlusTree :: BPlusTree () {
 
 BPlusTree :: ~BPlusTree () {
 	
-	Destruction (root);
+	if (root) {
+		
+		Destruction (root);
+		
+	}
 	
 }
 
@@ -17,12 +21,18 @@ BPTNode *BPlusTree :: RecursivelySearch (BPTNode *node, int key) {
 	
 	if (node->IsLeaf ()) {
 		
+		// Show (node, false);
+		
 		// if leafNode, return it
 		return node;
 		
 	} else {
 		
+		// Show (node, false);
+		
 		int index = node->GetKeyIndex (key);
+		
+		// cout << index << endl;
 		
 		if (index < node->GetKeyNum () && key == node->GetKeys ()[index]) {
 			
@@ -62,7 +72,7 @@ void BPlusTree :: Show (BPTNode *node, bool showAll = false) {
 	
 	if (!node) {
 		
-		// cout << "Dead End! Something went wrong!" << endl;
+		cout << "Dead End! Something went wrong!" << endl;
 		
 	} else if (!node->IsLeaf ()) {
 		
@@ -97,6 +107,8 @@ void BPlusTree :: Show (BPTNode *node, bool showAll = false) {
 		}
 		
 		cout << endl;
+		// cout << "Parent :";
+		// Show (node->GetParent ());
 		
 	}
 	
@@ -111,11 +123,16 @@ void BPlusTree :: Display () {
 void BPlusTree :: Initialize (int m) {
 	
 	order = m;
-	root = new LeafNode (m);
 	
 }
 
 void BPlusTree :: Insert (int key, float value) {
+	
+	if (!root) {
+		
+		root = new LeafNode (order);
+		
+	}
 	
 	int midKey;
 	bool needNewRoot = false;
@@ -218,7 +235,7 @@ bool *BPlusTree :: Search (int key1, int key2, float *&values, int &num) {
 	BPTNode *node1 = RecursivelySearch (root, key1);
 	BPTNode *node2 = RecursivelySearch (root, key2);
 	
-	cout << node1 << " " << node2 << endl;
+	// cout << node1 << " " << node2 << endl;
 	
 	int index1 = node1->GetKeyIndex (key1);
 	int index2 = node2->GetKeyIndex (key2);
@@ -271,7 +288,7 @@ bool *BPlusTree :: Search (int key1, int key2, float *&values, int &num) {
 					}
 					
 					values[num++] = node1->GetValues ()[index];
-					cout << values[num - 1] << endl;
+					// cout << values[num - 1] << endl;
 					
 				} else {
 					

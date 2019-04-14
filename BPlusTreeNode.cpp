@@ -187,63 +187,6 @@ void InternalNode :: Insert (int key, BPTNode* leftChild, BPTNode* rightChild) {
 	
 }
 
-void InternalNode :: Merge (BPTNode* rightNode) {
-	
-	int *rightKeys = rightNode->GetKeys ();
-	BPTNode **rightChildren = rightNode->GetChildren ();
-	BPTNode *rightParent = rightNode->GetParent ();
-	BPTNode *leftParent = parent;
-	
-	int pindex = rightParent->GetKeyIndex (rightKeys[0]);
-	
-	if (pindex == rightParent->GetKeyNum () || rightParent->GetKeys ()[pindex] > rightKeys[0]) {
-		
-		pindex--;
-		
-	}
-	
-	int down = rightParent->GetKeys ()[pindex];
-	
-	keys[keyNum] = down;
-	
-	for (int i = 1; i <= rightNode->GetKeyNum (); i++) {
-		
-		keys[keyNum + i] = rightKeys[i - 1];
-		children[keyNum + i] = rightChildren[i - 1];
-		children[keyNum + i]->SetParent (this);
-		
-	}
-	
-	keyNum += 1 + rightNode->GetKeyNum ();
-	
-	// cout << keyNum << endl;
-	
-	children[keyNum] = rightChildren[rightNode->GetKeyNum ()];
-	children[keyNum]->SetParent (this);
-	
-	next = rightNode->GetNext ();
-	if (next) {
-		
-		next->SetPrev (this);
-		
-	}
-	
-	/*while (leftParent != rightParent) {
-		
-		leftParent = leftParent->GetParent ();
-		rightParent = rightParent->GetParent ();
-		
-	}
-	
-	pindex = leftParent->GetKeyIndex (up) - 1;
-	leftParent->GetKeys ()[pindex] = up;
-	*/
-	rightNode->GetParent ()->Delete (keys[0]);
-	
-	delete rightNode;
-	
-}
-
 void InternalNode :: Delete (int key) {
 	
 	int index = GetKeyIndex (key);
@@ -280,6 +223,7 @@ void InternalNode :: Delete (int key) {
 			
 			int up = next->GetKeys ()[0];
 			BPTNode *borrowed = next->GetChildren ()[0];
+			borrowed->SetParent (this);
 			
 			BPTNode *leftParent = parent;
 			BPTNode *rightParent = next->GetParent ();
@@ -291,7 +235,13 @@ void InternalNode :: Delete (int key) {
 				
 			}
 			
-			int pindex = leftParent->GetKeyIndex (up) - 1;
+			int pindex = leftParent->GetKeyIndex (up);
+			if (leftParent->GetKeys ()[pindex] < up) {
+				
+				pindex--;
+				
+			}
+			
 			int down = leftParent->GetKeys ()[pindex];
 			
 			leftParent->GetKeys ()[pindex] = up;
@@ -308,13 +258,129 @@ void InternalNode :: Delete (int key) {
 			
 			next->GetChildren ()[next->GetKeyNum()] = next->GetChildren ()[next->GetKeyNum() + 1];
 			
+		} else if (prev && prev->GetKeyNum () > order / 2) {
+			
+			prev->DecreaseKeyNum ();
+			
+			int up = prev->GetKeys ()[prev->GetKeyNum ()];
+			BPTNode *borrowed = prev->GetChildren ()[prev->GetKeyNum () + 1];
+			borrowed->SetParent (this);
+			
+			BPTNode *leftParent = prev->GetParent ();
+			BPTNode *rightParent = parent;
+			
+			while (leftParent != rightParent) {
+				
+				leftParent = leftParent->GetParent ();
+				rightParent = rightParent->GetParent ();
+				
+			}
+			
+			int pindex = leftParent->GetKeyIndex (up);
+			int down = leftParent->GetKeys ()[pindex];
+			
+			leftParent->GetKeys ()[pindex] = up;
+			
+			for (int i = keyNum; i > 0; i--) {
+				
+				keys[i] = next->GetKeys ()[i + 1];
+				children[i + 1] = children[i];
+				
+			}
+			
+			children[1] = children[0];
+			
+			keys[0] = down;
+			children[0] = borrowed;
+			
 		} else if (next) {
 			
 			Merge (next);
 			
+		} else if (prev) {
+			
+			prev->Merge (this);
+			
 		}
 	
 	}
+	
+}
+
+void InternalNode :: Merge (BPTNode* rightNode) {
+	
+	int *rightKeys = rightNode->GetKeys ();
+	BPTNode **rightChildren = rightNode->GetChildren ();
+	BPTNode *rightParent = rightNode->GetParent ();
+	BPTNode *leftParent = parent;
+	
+	while (leftParent != rightParent) {
+		
+		leftParent = leftParent->GetParent ();
+		rightParent = rightParent->GetParent ();
+		
+	}
+	
+	int pindex = leftParent->GetKeyIndex (rightKeys[0]);
+	
+	if (pindex == leftParent->GetKeyNum () || leftParent->GetKeys ()[pindex] > rightKeys[0]) {
+		
+		pindex--;
+		
+	}
+	
+	int down = leftParent->GetKeys ()[pindex];
+	
+	if (keyNum == 0) {
+		
+		keys[keyNum] = down;
+		
+		for (int i = 0; i <= rightNode->GetKeyNum (); i++) {
+		
+			keys[keyNum + i + 1] = rightKeys[i];
+			children[keyNum + i + 1] = rightChildren[i];
+			children[keyNum + i + 1]->SetParent (this);
+		
+		}
+		
+	} else {
+		
+		keys[keyNum - 1] = down;
+		
+		for (int i = 0; i <= rightNode->GetKeyNum (); i++) {
+		
+			keys[keyNum + i] = rightKeys[i];
+			children[keyNum + i + 1] = rightChildren[i];
+			children[keyNum + i + 1]->SetParent (this);
+		
+		}
+		
+	}
+	
+	
+	
+	keyNum += 1 + rightNode->GetKeyNum ();
+	
+	next = rightNode->GetNext ();
+	if (next) {
+		
+		next->SetPrev (this);
+		
+	}
+	/*
+	while (leftParent != rightParent) {
+		
+		leftParent = leftParent->GetParent ();
+		rightParent = rightParent->GetParent ();
+		
+	}
+	
+	pindex = leftParent->GetKeyIndex (up) - 1;
+	leftParent->GetKeys ()[pindex] = up;
+	*/
+	rightNode->GetParent ()->Delete (down);
+	
+	delete rightNode;
 	
 }
 
@@ -398,7 +464,12 @@ void LeafNode :: Delete (int key) {
 	
 	if (keys[index] == key) {
 		
+		// cout << key << " Found!" << endl;
+		// cout << keyNum << endl;
+		
 		DecreaseKeyNum ();
+		
+		// cout << keyNum << endl;
 		
 		for (; index < keyNum; index++) {
 			
@@ -450,9 +521,43 @@ void LeafNode :: Delete (int key) {
 			
 			leftParent->GetKeys ()[pindex] = next->GetKeys ()[0];
 			
+		} else if (prev && prev->GetKeyNum () > order / 2) {
+			
+			prev->DecreaseKeyNum ();
+			
+			for (int i = keyNum; i > 0; i--) {
+				
+				keys[i] = keys[i - 1];
+				values[i] = values[i - 1];
+				
+			}
+			
+			keys[0] = prev->GetKeys ()[prev->GetKeyNum ()];
+			values[0] = prev->GetValues ()[prev->GetKeyNum ()];
+			
+			keyNum++;
+			
+			BPTNode *leftParent = prev->GetParent ();
+			BPTNode *rightParent = parent;
+			
+			while (leftParent != rightParent) {
+				
+				leftParent = leftParent->GetParent ();
+				rightParent = rightParent->GetParent ();
+				
+			}
+			
+			int pindex = leftParent->GetKeyIndex (keys[0]);
+			
+			leftParent->GetKeys ()[pindex] = keys[0];
+			
 		} else if (next) {
 			
 			Merge(next);
+			
+		} else if (prev) {
+			
+			prev->Merge (this);
 			
 		}
 		
@@ -464,6 +569,8 @@ void LeafNode :: Merge (BPTNode* rightNode) {
 	
 	int *rightKeys = rightNode->GetKeys ();
 	float *rightValues = rightNode->GetValues ();
+	
+	int down = rightKeys[0];
 	
 	for (int i = 0; i < rightNode->GetKeyNum (); i++) {
 		
@@ -481,22 +588,7 @@ void LeafNode :: Merge (BPTNode* rightNode) {
 		
 	}
 	
-	BPTNode *leftParent = parent;
-	BPTNode *rightParent = next->GetParent ();
-	
-	int up = rightParent->GetKeys ()[rightParent->GetKeyIndex (keys[0])];
-	
-	while (leftParent != rightParent) {
-		
-		leftParent = leftParent->GetParent ();
-		rightParent = rightParent->GetParent ();
-		
-	}
-	
-	int pindex = leftParent->GetKeyIndex (up) - 1;
-	leftParent->GetKeys ()[pindex] = up;
-	
-	rightNode->GetParent ()->Delete (keys[0]);
+	rightNode->GetParent ()->Delete (down);
 	
 	delete rightNode;
 	
